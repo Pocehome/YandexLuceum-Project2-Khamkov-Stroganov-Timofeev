@@ -12,6 +12,7 @@ class Figure:
         (31, 162, 19),
         (13, 135, 167),
     ]
+    # Список возможных цветов фигур
 
     figures = [
         [[1, 5, 9, 13], [4, 5, 6, 7]],
@@ -22,6 +23,12 @@ class Figure:
         [[1, 4, 5, 6], [1, 4, 5, 9], [4, 5, 6, 9], [1, 5, 6, 9]],
         [[1, 2, 5, 6]],
     ]
+    # Форма фигур и варианты их поворота, на поле 4 на 4. Например фигура Г выглядит так:
+    #   0   *   *   3
+    #   4   *   6   7
+    #   8   *   10  11
+    #   12  13  14  15
+    # То есть [1, 2, 5, 9]
 
     def __init__(self, field_x, field_y):
         self.field_x = field_x
@@ -29,12 +36,16 @@ class Figure:
         self.type = random.randint(0, len(self.figures) - 1)
         self.color = random.choice(self.colors)
         self.rotation = 0
+        # В инициализации выбирается фигура и её цвет (так же можно добавить выбор градуса поворота,
+        # но тогда надо уравнять кол-во елементов в списках)
 
     def image(self):
         return self.figures[self.type][self.rotation]
+        # Возвращается елемент списка figures, заданного типа и поворота
 
     def rotate(self):
         self.rotation = (self.rotation + 1) % len(self.figures[self.type])
+        # Изменение значения rotate для поворота фигуры
 
 
 class Tetris:
@@ -45,6 +56,8 @@ class Tetris:
     field_y = 10
     cell_size = 30
     figure = None
+    # данные для инициализации: состояние игры, кол-во ячеек в столбце, кол-во ячеек в линии,
+    # положение поля по x и y, размер клетки (сторона квадрата), состояние падающей сейчас фигуры
 
     def __init__(self, cell_count_height, cell_count_width, difficulty=2):
         self.cell_count_height = cell_count_height
@@ -58,9 +71,11 @@ class Tetris:
             for _ in range(cell_count_width):
                 new_line.append(0)
             self.field.append(new_line)
+            # создание матрицы поля
 
     def new_figure(self):
         self.figure = Figure(3, 0)
+        # добавление новой фигуры
 
     def intersects(self):
         intersection = False
@@ -73,6 +88,7 @@ class Tetris:
                             self.field[i + self.figure.field_y][j + self.figure.field_x] is not 0:
                         intersection = True
         return intersection
+        # поиск пересечений падающей фигуры с полем
 
     def break_lines(self):
         lines = 0
@@ -81,26 +97,30 @@ class Tetris:
             for j in range(self.cell_count_width):
                 if self.field[i][j] == 0:
                     zeros += 1
+                    break
             if zeros == 0:
                 lines += 1
                 for i1 in range(i, 1, -1):
                     for j1 in range(self.cell_count_width):
                         self.field[i1][j1] = self.field[i1 - 1][j1]
         self.score += lines ** 2
+        # функция для уничтожения линий. Проверяет на наличие 0 в матрице, и если их нет, то убирает линию
 
     def go_space(self):
         while not self.intersects():
             self.figure.field_y += 1
         self.figure.field_y -= 1
-        self.freeze()
+        self.stop_game()
+        # функция клавиши "пробел" (фигура моментально падает как можно ниже
 
     def go_down(self):
         self.figure.field_y += 1
         if self.intersects():
             self.figure.field_y -= 1
-            self.freeze()
+            self.stop_game()
+        # функция клавиши "вниз" (фигура двигается вниз быстрее), также вызывается автоматически для движения фигуры
 
-    def freeze(self):
+    def stop_game(self):
         for i in range(4):
             for j in range(4):
                 if i * 4 + j in self.figure.image():
@@ -109,18 +129,21 @@ class Tetris:
         self.new_figure()
         if self.intersects():
             self.running_game = False
+        # останавливает игру, вызывается другими функциями при наличии пересечений
 
     def go_side(self, dx):
         old_x = self.figure.field_x
         self.figure.field_x += dx
         if self.intersects():
             self.figure.field_x = old_x
+        # функция клавиш "влево" и "вправо". Перемещает фигуру влево или вправо
 
     def rotate(self):
         old_rotation = self.figure.rotation
         self.figure.rotate()
         if self.intersects():
             self.figure.rotation = old_rotation
+        # функция клавиши "вверх" поворачивает фигуру против часовой стрелки
 
 
 pygame.init()
@@ -141,6 +164,7 @@ clock = pygame.time.Clock()
 fps = 25
 game = Tetris(20, 10, difficulty=2)
 counter = 0
+# создание игры. counter - счетчик отвечающий за отсчет время падения
 
 pressing_down = False
 
@@ -148,9 +172,8 @@ while running:
     if game.figure is None:
         game.new_figure()
     counter += 1
-    if counter > 100000:
+    if counter > 6000:
         counter = 0
-
     if counter % (fps // game.difficulty // 2) == 0 or pressing_down:
         if game.running_game is True:
             game.go_down()
@@ -179,6 +202,7 @@ while running:
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_DOWN:
                 pressing_down = False
+        # обработка событий
 
     screen.fill(BLACK)
 
@@ -190,6 +214,7 @@ while running:
                 pygame.draw.rect(screen, game.field[i][j],
                                  [game.field_x + game.cell_size * j + 1, game.field_y + game.cell_size * i + 1,
                                   game.cell_size - 2, game.cell_size - 1])
+                # отрисовка поля и сетки
 
     if game.figure is not None:
         for i in range(4):
@@ -200,6 +225,7 @@ while running:
                                      [game.field_x + game.cell_size * (j + game.figure.field_x) + 1,
                                       game.field_y + game.cell_size * (i + game.figure.field_y) + 1,
                                       game.cell_size - 2, game.cell_size - 2])
+        # отрисовка падающей фигуры
 
     font = pygame.font.SysFont('Calibri', 25, True, False)
     font1 = pygame.font.SysFont('Calibri', 50, True, False)
@@ -213,6 +239,7 @@ while running:
     if game.running_game is False:
         screen.blit(text_game_over, [40, 200])
         screen.blit(text_game_over1, [60, 265])
+    # отрисовка надписей
 
     pygame.display.flip()
     clock.tick(fps)
