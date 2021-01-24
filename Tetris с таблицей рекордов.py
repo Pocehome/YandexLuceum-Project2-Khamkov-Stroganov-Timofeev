@@ -507,6 +507,7 @@ while running:
                     con.commit()
 
                     title_sound.play(loops=-1)
+                    title_sound_play = True
                     level_hard()
                     title_sound.stop()
                     title_sound_play = False
